@@ -12,7 +12,7 @@ const fsPromises = require('node:fs/promises');
 
 
 const anton = async () => {
-
+    try{
     //Базовий фал для копіювання
     const pathToFile = path.join(__dirname, 'file.txt');
     await fsPromises.writeFile(pathToFile, 'Text')
@@ -32,17 +32,17 @@ const anton = async () => {
         await fsPromises.mkdir(path.join(insideFolderPath), {recursive: true});
         console.log(`${insideFolderPath} - папка${i}`)
 
-        const statFolders = await fsPromises.stat(baseFolderPath)
+        const statFolders = await fsPromises.stat(insideFolderPath)
         console.log(`Чи folder${i} папка? - ${statFolders.isDirectory()}`)
 
         //Другий цикл для файлів
         for(let j = 1; j < 6; j++) {
-            const insideFilePath = path.join(insideFolderPath, `file${j}`);
-            await fsPromises.copyFile(pathToFile, path.join(insideFilePath))
+            const insideFilePath = path.join(insideFolderPath, `file${j}.txt`);
+            await fsPromises.copyFile(pathToFile, path.join(insideFolderPath, `file${j}.txt`))
             console.log(`${insideFilePath} - файл${j} в папці${i}`)
 
             const statFiles = await fsPromises.stat(insideFilePath)
-            console.log(`Чи file${j} файл? - ${statFiles.isFile()}`)
+            console.log(`Чи file${j}.txt файл? - ${statFiles.isFile()}`)
             console.log('----------------------------------------')
         }
         console.log('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
@@ -50,6 +50,10 @@ const anton = async () => {
     }
     //Видаляю перший файл, котрий був як приклад
     await fsPromises.unlink(pathToFile);
+        }
+        catch(e){
+        console.e('Упс, щось пішло не так ;)')
+        }
     
     }
     anton()
