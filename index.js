@@ -37,34 +37,50 @@ app.get('/users', (req, res) => {
         }
 });
 
+
+// Відсутні поля. Якщо в запиті на створення немає імені або тіло порожнє, сервер падає з 500. Це помилка клієнта, тому відповідь має бути 400 зі зрозумілим повідомленням.
+// - Повідомлення про помилку валідації не відповідає умові («рік не повинен дорівнювати 0») і не каже, яке саме поле невалідне. Краще для кожного поля давати окреме повідомлення.
+
+//Створення юзера: після успішної відповіді 201 код іде далі й намагається відправити ще й 400.
+// Клієнт цього не бачить, але сервер на кожне створення пише в лог Cannot set headers after they are sent to the client. Після відправки відповіді хендлер має завершуватися.
 app.post('/users', (req, res) => {
-       try {
+        try {
                const {name, age, status} = req.body;
-               if (name.length > 3 && age !== 0){
-                       const id = users[users.length-1].id+1;
-                       const newUser = {id, name, age, status};
-                       users.push(newUser);
-                       res.status(201).send(newUser);
+
+               if(!name || typeof  name !== 'string' || name.length <= 3){
+                       return res.status(400).send("Ім'я повинно бути стрінгове, більше 3 символів і обов'язкове")
                }
-               res.status(400).send("Ім'я повинно бути більше 3 символів або рік не повинен дорівнювати 0")
+               if(age === undefined || age === null || typeof age !== 'number' || age < 0){
+                      return  res.status(400).send("Вік повинен бути числовим, не менше 0 і обов'язковим")
+               }
+               if(typeof status !== 'boolean'){
+                     return res.status(400).send("Статус повинен бути boolean і обов'язковим")
+               }
+               const id = users[users.length-1].id+1;
+               const newUser = {id, name, age, status};
+               users.push(newUser);
+               return res.status(200).send(newUser);
        }catch (e){
-               res.status(500).send(e.message);
+               res.status(400).send(e.message);
        }
 })
 
+// Отримання юзера за id, якого не існує, повертає 500 req.status is not a function замість 404.
+// Перевірку написано, але відповідь відправляється не через той об'єкт: статус встановлюють на відповіді (res), а не на запиті (req).
 app.get('/users/:userId', (req, res) => {
        try {
                const userId = Number(req.params.userId)
                const user = users.find(user => user.id === userId);
                if(!user){
-                       return req.status(404).send('Такого юзера не існує')
+                       return res.status(404).send('Такого юзера не існує')
                }
-               res.send(user);
+                       res.send(user);
        } catch (e){
                res.status(500).send(e.message);
        }
 })
 
+//Оновлення юзера змінює дані, але клієнт отримує 500 з тієї ж причини: req замість res. Клієнт бачить помилку, хоча оновлення відбулося.
 app.put('/users/:userId', (req, res) => {
         try {
                 const userId = Number(req.params.userId)
@@ -76,12 +92,13 @@ app.put('/users/:userId', (req, res) => {
                 users[userIndex].name = name;
                 users[userIndex].age = age;
                 users[userIndex].status = status;
-                req.status(201).send(users[userIndex]);
+                res.status(201).send(users[userIndex]);
         }catch (e){
                 res.status(500).send(e.message);
         }
 })
 
+//Видалення юзера прибирає юзера з масиву, але клієнт отримує 500 через друкарську помилку в назві методу для відправки статусу. Має повертатися 204.
 app.delete('/users/:userId', (req, res) => {
         try {
                 const userId = Number(req.params.userId)
@@ -90,7 +107,7 @@ app.delete('/users/:userId', (req, res) => {
                         return res.status(404).send('Такого юзера не існує')
                 }
                 users.splice(userIndex, 1);
-                res.sedStatus(204)
+               return  res.status(204).send()
         }
         catch (e){
                 res.status(500).send(e.message);
